@@ -14,9 +14,12 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       target: { tabId: tab.id },
       function: () => {
         const selection = window.getSelection().toString();
+
         chrome.storage.sync.get("openai_key", (result) => {
           if (result.openai_key === undefined) {
             alert("OpenAI API key is not set.");
+            const api_key = prompt("Please enter your OpenAI API key:");
+            chrome.storage.sync.set({ openai_key: api_key });
             return;
           }
           const messages = [
@@ -44,6 +47,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
             .then((response) => response.json())
             .then((data) => {
               const response = data.choices[0].message.content;
+              // copy to clipboard
+              navigator.clipboard.writeText(response);
               const html = `
                 <html>
                   <head>
@@ -63,7 +68,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
                         background-color: #f0f0f0;
                       }
                       .ai {
-                        background-color: #e0e0e0;
+                        background-color: #f9f9f9;
                       }
                     </style>
                   </head>
@@ -71,12 +76,16 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
                     <h1>AI Response</h1>
                     <pre class="message user">${selection}</pre>
                     <hr />
-                    <pre class="message ai">${response}</pre>
+                    <textarea class="message ai" style="width: 100%; height: 200px;">${response}</textarea>
                   </body>
                 </html>
-              `;c
+              `;
               // Open new window (popup window, size 800x600)
-              const newWindow = window.open("", "_blank", "width=800,height=600");
+              const newWindow = window.open(
+                "",
+                "_blank",
+                "width=800,height=600,menubar=no,toolbar=no,location=no,status=no",
+              );
               newWindow.document.open();
               newWindow.document.write(html);
             })
